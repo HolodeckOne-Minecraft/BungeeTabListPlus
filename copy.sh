@@ -1,3 +1,3 @@
 #!/bin/bash
 
-cp -f bukkit/target/*.jar "$1"
+cp -f out/artifacts/BungeeTabListPlus/*.jar "$1"
