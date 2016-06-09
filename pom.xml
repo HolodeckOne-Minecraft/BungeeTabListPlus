@@ -13,7 +13,6 @@
         <module>common</module>
         <module>bootstrap-bungee</module>
         <module>bootstrap-bukkit</module>
-        <module>network</module>
         <module>legacy</module>
         <module>data</module>
         <module>api-bukkit</module>
@@ -47,13 +46,11 @@
     <repositories>
         <repository>
             <id>codecrafter47-repo</id>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
             <url>http://nexus.codecrafter47.dyndns.eu/content/repositories/public/</url>
+        </repository>
+        <repository>
+            <id>md_5-snapshots</id>
+            <url>http://repo.md-5.net/content/repositories/snapshots/</url>
         </repository>
     </repositories>
 
