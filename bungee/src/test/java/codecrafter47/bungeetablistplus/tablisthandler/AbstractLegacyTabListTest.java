@@ -33,10 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class AbstractLegacyTabListTest {
     private ClientTabList clientTabList;
@@ -80,7 +77,7 @@ public class AbstractLegacyTabListTest {
 
         private void validateConstraints() {
             if (passThrough) {
-                assertEquals(serverTabList.size(), clientTabList.players.size());
+                assertEquals(serverTabListEntryNames.size(), clientTabList.players.size());
             } else {
                 assertEquals(clientSize, usedSlots);
                 assertEquals(usedSlots, clientTabList.players.size());
@@ -100,15 +97,15 @@ public class AbstractLegacyTabListTest {
                 for (PlayerListItem.Item item : ((PlayerListItem) packet).getItems()) {
                     switch (((PlayerListItem) packet).getAction()) {
                         case ADD_PLAYER:
-                            if (!clientTabList.ping.containsKey(item.getUsername())) {
-                                clientTabList.players.add(item.getUsername());
+                            if (!clientTabList.ping.containsKey(item.getDisplayName())) {
+                                clientTabList.players.add(item.getDisplayName());
                             }
-                            clientTabList.ping.put(item.getUsername(), item.getPing());
+                            clientTabList.ping.put(item.getDisplayName(), item.getPing());
                             break;
                         case REMOVE_PLAYER:
-                            assertTrue(clientTabList.ping.containsKey(item.getUsername()));
-                            clientTabList.players.remove(item.getUsername());
-                            clientTabList.ping.remove(item.getUsername());
+                            assertTrue(clientTabList.ping.containsKey(item.getDisplayName()));
+                            clientTabList.players.remove(item.getDisplayName());
+                            clientTabList.ping.remove(item.getDisplayName());
                             break;
                         default:
                             fail();
