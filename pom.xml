@@ -13,7 +13,6 @@
         <module>common</module>
         <module>bootstrap-bungee</module>
         <module>bootstrap-bukkit</module>
-        <module>data</module>
         <module>api-bukkit</module>
         <module>api-bungee</module>
         <module>api-sponge</module>
@@ -24,9 +23,15 @@
     </modules>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.target>1.7</maven.compiler.target>
         <maven.compiler.source>1.7</maven.compiler.source>
         <build.number>unknown</build.number>
+        <data-api.version>1.0.1-SNAPSHOT</data-api.version>
+        <sponge-api.version>5.0.0</sponge-api.version>
+        <lombok.version>1.16.12</lombok.version>
+        <spigot-api.version>1.11.2-R0.1-SNAPSHOT</spigot-api.version>
+        <bungeecord.version>1.11-SNAPSHOT</bungeecord.version>
     </properties>
 
     <scm>
