@@ -28,11 +28,6 @@ public class SortingRuleRegistry {
     private static final ImmutableMap<String, SortingRule> map = ImmutableMap.<String, SortingRule>builder()
             .put("you", new YouFirst())
             .put("youfirst", new YouFirst())
-            .put("admin", new AdminFirst())
-            .put("adminfirst", new AdminFirst())
-            .put("adminsfirst", new AdminFirst())
-            .put("adminlast", new AdminLast())
-            .put("rank", new AdminFirst())
             .put("alpha", new Alphabet())
             .put("alphabet", new Alphabet())
             .put("alphabetic", new Alphabet())
@@ -52,9 +47,13 @@ public class SortingRuleRegistry {
             .put("vaultgroupinforeversed", new ReverseOrder(new VaultGroupInfo()))
             .put("bungeepermsgroupinfo", new BungeePermsGroupInfo())
             .put("bungeepermsgroupinforeversed", new ReverseOrder(new BungeePermsGroupInfo()))
+            .put("luckpermsgroupinfo", new LuckPermsGroupInfo())
+            .put("luckpermsgroupinforeversed", new ReverseOrder(new LuckPermsGroupInfo()))
             .put("bungeecordgroups", new BungeeCordGroups())
             .put("bungeecordgroupsreversed", new ReverseOrder(new BungeeCordGroups()))
             .put("vaultprefix", new VaultPrefixAlphabetically())
+            .put("connectedfirst", new ReverseOrder(new ConnectedLast()))
+            .put("connectedlast", new ConnectedLast())
             .build();
 
     public static Optional<SortingRule> getRule(String name) {

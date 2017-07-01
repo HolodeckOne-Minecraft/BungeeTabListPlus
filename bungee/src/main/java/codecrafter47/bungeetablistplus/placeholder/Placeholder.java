@@ -44,7 +44,7 @@ public abstract class Placeholder {
     private static final Placeholder OTHER_COUNT_PLACEHOLDER = new OtherCountPlaceholder();
     private static final Placeholder SERVER_PLAYER_COUNT_PLACEHOLDER = new ServerPlayerCountPlaceholder();
     private static final Map<String, BiFunction<String[], Function<Context, Player>, Placeholder>> playerPlaceholders = new HashMap<>();
-    private static final Map<String, Function<String, String>> serverPlaceholders = new HashMap<>();
+    private static final Map<String, BiFunction<String[], Function<Context, String>, Placeholder>> serverPlaceholders = new HashMap<>();
 
     public static final Map<String, DataKey<String>> placeholderAPIDataKeys = Collections.synchronizedMap(new HashMap<>());
     public static final Map<String, DataKey<String>> remoteThirdPartyDataKeys = Collections.synchronizedMap(new HashMap<>());
@@ -60,6 +60,9 @@ public abstract class Placeholder {
         playerPlaceholders.put("bungeeperms_primary_group", ofStringData(BungeeData.BungeePerms_PrimaryGroup));
         playerPlaceholders.put("bungeeperms_primary_group_prefix", ofStringData(BungeeData.BungeePerms_PrimaryGroupPrefix));
         playerPlaceholders.put("bungeeperms_user_prefix", ofStringData(BungeeData.BungeePerms_PlayerPrefix));
+        playerPlaceholders.put("luckperms_prefix", ofStringData(BungeeData.LuckPerms_Prefix));
+        playerPlaceholders.put("luckperms_suffix", ofStringData(BungeeData.LuckPerms_Suffix));
+        playerPlaceholders.put("luckperms_primary_group", ofStringData(BungeeData.LuckPerms_PrimaryGroup));
         playerPlaceholders.put("client_version", ofStringData(BungeeData.ClientVersion));
         playerPlaceholders.put("uuid", ofFunction(player -> player.getUniqueID().toString()));
         playerPlaceholders.put("world", ofStringData(MinecraftData.World));
@@ -115,15 +118,47 @@ public abstract class Placeholder {
         playerPlaceholders.put("essentials_afk", ofFunction(p -> p.getOpt(BukkitData.Essentials_IsAFK).orElse(false).toString()));
         playerPlaceholders.put("is_hidden", ofFunction(p -> Boolean.toString(BungeeTabListPlus.isHidden(p))));
         playerPlaceholders.put("gamemode", ofIntData(BTLPBungeeDataKeys.DATA_KEY_GAMEMODE));
+        playerPlaceholders.put("bungeeonlinetime_seconds", ofIntFunction(player -> player.getOpt(BungeeData.BungeeOnlineTime_OnlineTime).map(duration -> (int) (duration.getSeconds() % 60)).orElse(0)));
+        playerPlaceholders.put("bungeeonlinetime_minutes", ofIntFunction(player -> player.getOpt(BungeeData.BungeeOnlineTime_OnlineTime).map(duration -> (int) ((duration.getSeconds() % 3600) / 60)).orElse(0)));
+        playerPlaceholders.put("bungeeonlinetime_hours", ofIntFunction(player -> player.getOpt(BungeeData.BungeeOnlineTime_OnlineTime).map(duration -> (int) (duration.getSeconds() / 3600)).orElse(0)));
+        playerPlaceholders.put("redisbungee_server_id", ofStringData(BTLPBungeeDataKeys.DATA_KEY_RedisBungee_ServerId));
+        playerPlaceholders.put("askyblock_island_level", ofIntData(BukkitData.ASkyBlock_IslandLevel));
+        playerPlaceholders.put("askyblock_island_name", ofStringData(BukkitData.ASkyBlock_IslandName));
+        playerPlaceholders.put("askyblock_team_leader", ofStringData(BukkitData.ASkyBlock_TeamLeader));
+        playerPlaceholders.put("paf_clans_clan_name", ofStringData(BungeeData.PAFClans_ClanName));
+        playerPlaceholders.put("paf_clans_clan_tag", ofStringData(BungeeData.PAFClans_ClanTag));
+        playerPlaceholders.put("paf_clans_clan_member_count", ofIntData(BungeeData.PAFClans_MemberCount));
+        playerPlaceholders.put("paf_clans_clan_online_member_count", ofIntData(BungeeData.PAFClans_OnlineMemberCount));
+        playerPlaceholders.put("paf_clans_is_leader", ofFunction(p -> p.getOpt(BungeeData.PAFClans_IsLeader).orElse(false).toString()));
 
         // Server
-        serverPlaceholders.put("tps", server -> {
-            Double tps = BungeeTabListPlus.getInstance().getBridge().getServerDataHolder(server).get(MinecraftData.TPS);
-            return tps != null ? String.format("%1.1f", tps) : "";
+        serverPlaceholders.put("tps", (tokens, serverFunction) -> {
+            if (tokens.length == 0) {
+                return new ServerBoundPlaceholder(serverFunction, server -> {
+                    Double tps = BungeeTabListPlus.getInstance().getBridge().getServerDataHolder(server).get(MinecraftData.TPS);
+                    return tps != null ? String.format("%1.1f", tps) : "";
+                });
+            } else {
+                String format = "%0" + tokens[0] + "f";
+                return new ServerBoundPlaceholder(serverFunction, server -> {
+                    Double tps = BungeeTabListPlus.getInstance().getBridge().getServerDataHolder(server).get(MinecraftData.TPS);
+                    return tps != null ? String.format(format, tps) : "";
+                });
+            }
         });
-        serverPlaceholders.put("online", serverName -> {
-            PingTask serverState = BungeeTabListPlus.getInstance().getServerState(serverName);
-            return serverState != null ? Boolean.toString(serverState.isOnline()) : "false";
+        serverPlaceholders.put("name", (tokens, serverFunction) -> {
+            if (tokens.length == 0) {
+                return new ServerBoundPlaceholder(serverFunction, server -> server);
+            } else {
+                int length = Integer.valueOf(tokens[0]);
+                return new ServerBoundPlaceholder(serverFunction, server -> server.substring(0, length));
+            }
+        });
+        serverPlaceholders.put("online", (tokens, serverFunction) -> {
+            return new ServerBoundPlaceholder(serverFunction, serverName -> {
+                PingTask serverState = BungeeTabListPlus.getInstance().getServerState(serverName);
+                return serverState != null ? Boolean.toString(serverState.isOnline()) : "false";
+            });
         });
     }
 
@@ -142,22 +177,37 @@ public abstract class Placeholder {
             return parseServerPlaceholder(Arrays.copyOfRange(tokens, 1, tokens.length), (context) -> context.get(Context.KEY_SERVER));
         } else if (tokens[0].startsWith("playerset:")) {
             String playerSet = tokens[0].split(":")[1];
-            return new Placeholder() {
-                @Override
-                public String evaluate(Context context) {
-                    List<Player> players = context.get(Context.KEY_PLAYER_SETS).get(playerSet);
-                    if (players == null) {
-                        players = Collections.emptyList();
-                        BungeeTabListPlus.getInstance().getLogger().info("Missing player set " + playerSet);
+            if (tokens.length == 3 && "size".equals(tokens[1])) {
+                String format = "%0" + tokens[2] + "d";
+                return new Placeholder() {
+                    @Override
+                    public String evaluate(Context context) {
+                        List<Player> players = context.get(Context.KEY_PLAYER_SETS).get(playerSet);
+                        if (players == null) {
+                            players = Collections.emptyList();
+                            BungeeTabListPlus.getInstance().getLogger().info("Missing player set " + playerSet);
+                        }
+                        return String.format(format, players.size());
                     }
-                    return Integer.toString(players.size());
-                }
-            };
+                };
+            } else {
+                return new Placeholder() {
+                    @Override
+                    public String evaluate(Context context) {
+                        List<Player> players = context.get(Context.KEY_PLAYER_SETS).get(playerSet);
+                        if (players == null) {
+                            players = Collections.emptyList();
+                            BungeeTabListPlus.getInstance().getLogger().info("Missing player set " + playerSet);
+                        }
+                        return Integer.toString(players.size());
+                    }
+                };
+            }
         } else if (tokens[0].startsWith("server:")) {
             String server = tokens[0].split(":")[1];
             return parseServerPlaceholder(Arrays.copyOfRange(tokens, 1, tokens.length), context -> server);
         } else if ("time".equals(tokens[0])) {
-            return new TimePlaceholder(TimePlaceholders.getFormat(tokens[1]));
+            return new TimePlaceholder(getFormat(tokens[1]));
         } else if ("server_player_count".equals(tokens[0])) {
             return SERVER_PLAYER_COUNT_PLACEHOLDER;
         } else if ("other_count".equals(tokens[0])) {
@@ -192,7 +242,7 @@ public abstract class Placeholder {
         if (tokens.length == 0) {
             return new ServerBoundPlaceholder(serverFunction, o -> o);
         } else if (serverPlaceholders.containsKey(tokens[0])) {
-            return new ServerBoundPlaceholder(serverFunction, serverPlaceholders.get(tokens[0]));
+            return serverPlaceholders.get(tokens[0]).apply(Arrays.copyOfRange(tokens, 1, tokens.length), serverFunction);
         } else {
             return NULL_PLACEHOLDER;
         }
@@ -294,6 +344,7 @@ public abstract class Placeholder {
             }
             return instance.evaluate(context);
         }
+
     }
 
     private static BiFunction<String[], Function<Context, Player>, Placeholder> ofFunction(Function<Player, String> function) {
@@ -353,5 +404,11 @@ public abstract class Placeholder {
                 return new PlayerBoundPlaceholder(playerFunction, player -> player.getOpt(dataKey).map(i -> String.format(format, i)).orElse(""));
             }
         };
+    }
+
+    public static SimpleDateFormat getFormat(String pattern) {
+        SimpleDateFormat format = new SimpleDateFormat(pattern);
+        format.setTimeZone(BungeeTabListPlus.getInstance().getConfig().getTimeZone());
+        return format;
     }
 }

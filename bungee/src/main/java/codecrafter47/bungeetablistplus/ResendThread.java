@@ -20,9 +20,9 @@ package codecrafter47.bungeetablistplus;
 
 import codecrafter47.bungeetablistplus.config.Config;
 import codecrafter47.bungeetablistplus.config.DynamicSizeConfig;
+import codecrafter47.bungeetablistplus.config.FixedColumnsConfig;
 import codecrafter47.bungeetablistplus.config.FixedSizeConfig;
 import codecrafter47.bungeetablistplus.context.Context;
-import codecrafter47.bungeetablistplus.layout.LayoutException;
 import codecrafter47.bungeetablistplus.managers.ConnectedPlayerManager;
 import codecrafter47.bungeetablistplus.player.ConnectedPlayer;
 import codecrafter47.bungeetablistplus.tablisthandler.PlayerTablistHandler;
@@ -133,26 +133,26 @@ public class ResendThread implements Runnable, Executor {
                         tablistHandler.setTablistProvider(createTablistProvider(context, config));
                         tablistProvider = tablistHandler.getTablistProvider();
                     } else if (config == null && tablistProvider instanceof ConfigTablistProvider) {
-                        tablistHandler.setTablistProvider(tablistProvider = LegacyTablistProvider.INSTANCE);
+                        tablistHandler.setTablistProvider(tablistProvider = DefaultTablistProvider.INSTANCE);
                     }
                 } else {
-                    tablistHandler.setTablistProvider(tablistProvider = LegacyTablistProvider.INSTANCE);
+                    tablistHandler.setTablistProvider(tablistProvider = DefaultTablistProvider.INSTANCE);
                 }
 
-                if (tablistProvider instanceof LegacyTablistProvider) {
-                    ((LegacyTablistProvider) tablistProvider).update(tablistHandler);
-                } else if (tablistProvider instanceof ConfigTablistProvider) {
+                if (tablistProvider instanceof ConfigTablistProvider) {
                     ((ConfigTablistProvider) tablistProvider).update();
                 }
             }
         } catch (Throwable th) {
-            BungeeTabListPlus.getInstance().getLogger().log(th instanceof LayoutException ? Level.WARNING : Level.SEVERE, "Error while updating tablist", th);
+            BungeeTabListPlus.getInstance().getLogger().log(Level.SEVERE, "Error while updating tablist", th);
         }
     }
 
     private ConfigTablistProvider createTablistProvider(Context context, Config config) {
         if (config instanceof FixedSizeConfig) {
             return new FixedSizeConfigTablistProvider((FixedSizeConfig) config, context);
+        } else if (config instanceof FixedColumnsConfig) {
+            return new FixedColumnsConfigTablistProvider((FixedColumnsConfig) config, context);
         } else if (config instanceof DynamicSizeConfig) {
             return new DynamicSizeConfigTablistProvider((DynamicSizeConfig) config, context);
         } else {

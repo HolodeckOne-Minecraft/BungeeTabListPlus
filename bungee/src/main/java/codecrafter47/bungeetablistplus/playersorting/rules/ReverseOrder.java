@@ -20,7 +20,6 @@
 package codecrafter47.bungeetablistplus.playersorting.rules;
 
 import codecrafter47.bungeetablistplus.api.bungee.IPlayer;
-import codecrafter47.bungeetablistplus.api.bungee.tablist.TabListContext;
 import codecrafter47.bungeetablistplus.context.Context;
 import codecrafter47.bungeetablistplus.playersorting.SortingRule;
 import lombok.RequiredArgsConstructor;
@@ -30,12 +29,7 @@ public class ReverseOrder implements SortingRule {
     private final SortingRule delegate;
 
     @Override
-    public int compare(TabListContext context, IPlayer player1, IPlayer player2) {
-        return -delegate.compare(context, player1, player2);
-    }
-
-    @Override
     public int compare(Context context, IPlayer player1, IPlayer player2) {
-        return 0;
+        return -delegate.compare(context, player1, player2);
     }
 }
